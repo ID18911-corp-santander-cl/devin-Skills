@@ -8,7 +8,7 @@
 # MAGIC 3. Elimina registros existentes en `pro_business.essenexp.Filial_SHCB` para la fecha de proceso
 # MAGIC 4. Inserta (append) los datos mapeados desde la tabla de paso a `pro_business.essenexp.Filial_SHCB`
 # MAGIC
-# MAGIC **Estructura del CSV (separado por tabulación):**
+# MAGIC **Estructura del CSV (separado por coma):**
 # MAGIC | Columna | Descripción |
 # MAGIC |---|---|
 # MAGIC | Sociedad | Código de sociedad |
@@ -81,7 +81,7 @@ print(f"Ruta del CSV: {csv_path}")
 df = (
     spark.read.format("csv")
     .option("header", "true")
-    .option("delimiter", "\t")
+    .option("delimiter", ",")
     .option("encoding", "UTF-8")
     .option("mode", "PERMISSIVE")
     .option("columnNameOfCorruptRecord", "_corrupt_record")
@@ -99,7 +99,24 @@ df.show(10, truncate=False)
 
 # COMMAND ----------
 
-from pyspark.sql.functions import col, count, when
+from pyspark.sql.functions import col, count, when, trim, coalesce
+
+# Filtrar registros donde todas las columnas son nulas o vacías
+all_columns = df.columns
+not_all_empty = ~(
+    col(all_columns[0]).isNull() | (trim(col(all_columns[0]).cast("string")) == "")
+)
+for c in all_columns[1:]:
+    not_all_empty = not_all_empty | ~(
+        col(c).isNull() | (trim(col(c).cast("string")) == "")
+    )
+
+records_before = df.count()
+df = df.filter(not_all_empty)
+records_after = df.count()
+print(f"Registros leídos: {records_before}")
+print(f"Registros descartados (todas las columnas vacías/nulas): {records_before - records_after}")
+print(f"Registros válidos: {records_after}")
 
 # Verificar registros nulos en columnas clave
 null_checks = df.select(
@@ -111,9 +128,9 @@ null_checks.show()
 
 total_records = df.count()
 if total_records == 0:
-    raise ValueError(f"El archivo CSV está vacío: {csv_path}")
+    raise ValueError(f"El archivo CSV está vacío o todos los registros tienen columnas vacías: {csv_path}")
 
-print(f"Total de registros válidos: {total_records}")
+print(f"Total de registros a cargar: {total_records}")
 
 # COMMAND ----------
 
