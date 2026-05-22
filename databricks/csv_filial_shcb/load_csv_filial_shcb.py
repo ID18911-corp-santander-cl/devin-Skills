@@ -177,7 +177,7 @@ print(f"Registros eliminados de '{dest_table}' para data_date_part = '{data_date
 # MAGIC | shcode | Shareholder_entity_code |
 # MAGIC | shname | Name_of_the_shareholder_entity |
 # MAGIC | isin | Literal: '0' |
-# MAGIC | ic | transaction_currency |
+# MAGIC | ic | Literal: 'transaction_currency' |
 # MAGIC | osha | Number_of_owned_shares |
 # MAGIC | ownpi | Pct_ownership_per_issuance |
 # MAGIC | votr | Pct_voting_rights |
@@ -197,7 +197,7 @@ df_mapped = df_paso.select(
     col("Shareholder_entity_code").alias("shcode"),
     col("Name_of_the_shareholder_entity").alias("shname"),
     lit("0").alias("isin"),
-    col("Sociedad").alias("ic"),
+    lit("transaction_currency").alias("ic"),
     col("Number_of_owned_shares").alias("osha"),
     col("Pct_ownership_per_issuance").alias("ownpi"),
     col("Pct_voting_rights").alias("votr"),
