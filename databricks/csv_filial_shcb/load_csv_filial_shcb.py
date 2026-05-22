@@ -210,7 +210,7 @@ df_mapped = df_paso.select(
     col("Shareholder_entity_code").alias("counterparty_soc"),
     col("BIxxxxx").alias("adjustment_code"),
     lit("B03;MC23;PR18").alias("id_comb"),
-    col("AMOUNT").alias("amount"),
+    col("AMOUNT").cast("double").alias("amount"),
     col("Shareholder_entity_code").alias("shcode"),
     col("Name_of_the_shareholder_entity").alias("shname"),
     lit("0").alias("isin"),
