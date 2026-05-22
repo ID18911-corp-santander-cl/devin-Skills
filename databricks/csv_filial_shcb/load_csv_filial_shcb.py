@@ -1,9 +1,12 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Carga de Base_Filial CSV a tabla paso_csv_filial_SHCB
+# MAGIC # Carga de Base_Filial CSV a pro_business.essenexp.Filial_SHCB
 # MAGIC
-# MAGIC Este notebook lee el archivo CSV `Base_Filial_yyyymmdd.csv` desde el volumen
-# MAGIC `/Volumes/pro_app/essenneg/motor/` y lo carga en la tabla `pro_app.essenneg.paso_csv_filial_SHCB`.
+# MAGIC Este notebook:
+# MAGIC 1. Lee el archivo CSV `Base_Filial_yyyymmdd.csv` desde `/Volumes/pro_app/essenneg/motor/`
+# MAGIC 2. Lo carga en la tabla de paso `pro_app.essenneg.paso_csv_filial_SHCB`
+# MAGIC 3. Elimina registros existentes en `pro_business.essenexp.Filial_SHCB` para la fecha de proceso
+# MAGIC 4. Inserta (append) los datos mapeados desde la tabla de paso a `pro_business.essenexp.Filial_SHCB`
 # MAGIC
 # MAGIC **Estructura del CSV (separado por tabulación):**
 # MAGIC | Columna | Descripción |
@@ -31,7 +34,9 @@ from datetime import datetime
 dbutils.widgets.text("fecha_proceso", datetime.now().strftime("%Y%m%d"), "Fecha de proceso (yyyymmdd)")
 fecha_proceso = dbutils.widgets.get("fecha_proceso")
 
+data_date_part = f"{fecha_proceso[:4]}-{fecha_proceso[4:6]}-{fecha_proceso[6:8]}"
 print(f"Fecha de proceso: {fecha_proceso}")
+print(f"data_date_part:   {data_date_part}")
 
 # COMMAND ----------
 
@@ -137,6 +142,86 @@ print(f"Tabla '{target_table}' creada/actualizada exitosamente con {total_record
 # COMMAND ----------
 
 df_verify = spark.table(target_table)
-print(f"Registros en tabla: {df_verify.count()}")
+print(f"Registros en tabla de paso: {df_verify.count()}")
 df_verify.show(10, truncate=False)
 df_verify.printSchema()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 6. DELETE por data_date_part en pro_business.essenexp.Filial_SHCB
+
+# COMMAND ----------
+
+dest_table = "pro_business.essenexp.Filial_SHCB"
+
+spark.sql(f"""
+    DELETE FROM {dest_table}
+    WHERE data_date_part = '{data_date_part}'
+""")
+
+print(f"Registros eliminados de '{dest_table}' para data_date_part = '{data_date_part}'")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 7. Mapeo e INSERT append en pro_business.essenexp.Filial_SHCB
+# MAGIC
+# MAGIC | Campo Destino | Campo Origen |
+# MAGIC |---|---|
+# MAGIC | data_date_part | fecha_proceso (yyyy-mm-dd) |
+# MAGIC | counterparty_soc | Shareholder_entity_code |
+# MAGIC | adjustment_code | BIxxxxx |
+# MAGIC | id_comb | Literal: 'B03;MC23;PR18' |
+# MAGIC | amount | AMOUNT |
+# MAGIC | shcode | Shareholder_entity_code |
+# MAGIC | shname | Name_of_the_shareholder_entity |
+# MAGIC | isin | Literal: '0' |
+# MAGIC | ic | transaction_currency |
+# MAGIC | osha | Number_of_owned_shares |
+# MAGIC | ownpi | Pct_ownership_per_issuance |
+# MAGIC | votr | Pct_voting_rights |
+
+# COMMAND ----------
+
+from pyspark.sql.functions import lit
+
+df_paso = spark.table(target_table)
+
+df_mapped = df_paso.select(
+    lit(data_date_part).alias("data_date_part"),
+    col("Shareholder_entity_code").alias("counterparty_soc"),
+    col("BIxxxxx").alias("adjustment_code"),
+    lit("B03;MC23;PR18").alias("id_comb"),
+    col("AMOUNT").alias("amount"),
+    col("Shareholder_entity_code").alias("shcode"),
+    col("Name_of_the_shareholder_entity").alias("shname"),
+    lit("0").alias("isin"),
+    col("Sociedad").alias("ic"),
+    col("Number_of_owned_shares").alias("osha"),
+    col("Pct_ownership_per_issuance").alias("ownpi"),
+    col("Pct_voting_rights").alias("votr"),
+)
+
+(
+    df_mapped.write
+    .mode("append")
+    .saveAsTable(dest_table)
+)
+
+insert_count = df_mapped.count()
+print(f"Insertados {insert_count} registros en '{dest_table}' para data_date_part = '{data_date_part}'")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 8. Verificación de la tabla destino
+
+# COMMAND ----------
+
+df_dest_verify = spark.sql(f"""
+    SELECT * FROM {dest_table}
+    WHERE data_date_part = '{data_date_part}'
+""")
+print(f"Registros en '{dest_table}' para data_date_part = '{data_date_part}': {df_dest_verify.count()}")
+df_dest_verify.show(10, truncate=False)
