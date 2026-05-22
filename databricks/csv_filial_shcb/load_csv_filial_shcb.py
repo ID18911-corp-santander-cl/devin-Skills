@@ -3,7 +3,7 @@
 # MAGIC # Carga de Base_Filial CSV a tabla paso_csv_filial_SHCB
 # MAGIC
 # MAGIC Este notebook lee el archivo CSV `Base_Filial_yyyymmdd.csv` desde el volumen
-# MAGIC `/Volumes/pro_app/essenneg/motor/` y lo carga en la tabla `paso_csv_filial_SHCB`.
+# MAGIC `/Volumes/pro_app/essenneg/motor/` y lo carga en la tabla `pro_app.essenneg.paso_csv_filial_SHCB`.
 # MAGIC
 # MAGIC **Estructura del CSV (separado por tabulación):**
 # MAGIC | Columna | Descripción |
@@ -113,11 +113,11 @@ print(f"Total de registros válidos: {total_records}")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 4. Escritura en la tabla paso_csv_filial_SHCB
+# MAGIC ## 4. Escritura en la tabla pro_app.essenneg.paso_csv_filial_SHCB
 
 # COMMAND ----------
 
-target_table = "paso_csv_filial_SHCB"
+target_table = "pro_app.essenneg.paso_csv_filial_SHCB"
 
 # Escritura con overwrite: reemplaza la tabla completa en cada ejecución
 (
