@@ -202,7 +202,7 @@ print(f"Registros eliminados de '{dest_table}' para data_date_part = '{data_date
 
 # COMMAND ----------
 
-from pyspark.sql.functions import lit, current_timestamp, date_format
+from pyspark.sql.functions import lit, current_timestamp, date_format, from_utc_timestamp
 
 df_paso = spark.table(target_table)
 
@@ -220,7 +220,7 @@ df_mapped = df_paso.select(
     col("Number_of_owned_shares").cast("bigint").alias("osha"),
     col("Pct_ownership_per_issuance").cast("double").alias("ownpi"),
     col("Pct_voting_rights").cast("double").alias("votr"),
-    date_format(current_timestamp(), "yyyy-MM-dd HH:mm:ss.SSS").alias("fecha_de_ejecucion"),
+    date_format(from_utc_timestamp(current_timestamp(), "America/Santiago"), "yyyy-MM-dd HH:mm:ss.SSS").alias("fecha_de_ejecucion"),
 )
 
 (
