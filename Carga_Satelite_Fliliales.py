@@ -198,7 +198,7 @@ print(f"Registros eliminados de '{dest_table}' para data_date_part = '{data_date
 # MAGIC | osha | Number_of_owned_shares |
 # MAGIC | ownpi | Pct_ownership_per_issuance |
 # MAGIC | votr | Pct_voting_rights |
-# MAGIC | fecha_proceso | current_timestamp() formateado como 'yyyy-MM-dd HH:mm:ss.SSS' |
+# MAGIC | fecha_de_ejecucion | current_timestamp() formateado como 'yyyy-MM-dd HH:mm:ss.SSS' |
 
 # COMMAND ----------
 
@@ -220,7 +220,7 @@ df_mapped = df_paso.select(
     col("Number_of_owned_shares").cast("bigint").alias("osha"),
     col("Pct_ownership_per_issuance").cast("double").alias("ownpi"),
     col("Pct_voting_rights").cast("double").alias("votr"),
-    date_format(current_timestamp(), "yyyy-MM-dd HH:mm:ss.SSS").alias("fecha_proceso"),
+    date_format(current_timestamp(), "yyyy-MM-dd HH:mm:ss.SSS").alias("fecha_de_ejecucion"),
 )
 
 (
