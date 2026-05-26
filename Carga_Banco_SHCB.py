@@ -487,12 +487,15 @@ spark.sql(f"""
     ),
     resto AS (
         SELECT
-            COALESCE(SUM(depositos), 0)           AS sum_depositos,
-            COALESCE(SUM(total_acciones), 0)      AS sum_total_acciones,
-            ROUND(SUM(porc_sobre_total) * 100, 2) AS sum_porc_sobre_total
+            COALESCE(SUM(depositos), 0)        AS sum_depositos,
+            COALESCE(SUM(total_acciones), 0)   AS sum_total_acciones
         FROM pro_business.essenexp.Banco_SHCB_Detalle
         WHERE data_date_part = '{data_date_part}'
           AND CAST(orden AS INT) > 100
+    ),
+    sum_top_100 AS (
+        SELECT SUM(porc_sobre_total) AS sum_porc_top_100
+        FROM top_100
     )
     SELECT * FROM top_100
     UNION ALL
@@ -503,7 +506,7 @@ spark.sql(f"""
         CAST(0 AS BIGINT)                                  AS acciones,
         CAST(resto.sum_depositos AS BIGINT)                 AS depositos,
         CAST(resto.sum_total_acciones AS BIGINT)            AS total_acciones,
-        ROUND(resto.sum_porc_sobre_total, 2)                AS porc_sobre_total,
+        ROUND(100 - sum_top_100.sum_porc_top_100, 2)        AS porc_sobre_total,
         '00000'                                            AS intergrupo,
         'Terceros'                                         AS nombre_intergrupo,
         'O T R O S 10732      A C C I O N I S T A S'       AS accionista,
@@ -513,6 +516,7 @@ spark.sql(f"""
         'CLP'                                              AS more_detail,
         '{data_date_part}'                                  AS data_date_part
     FROM resto
+    CROSS JOIN sum_top_100
 """)
 
 print(f"INSERT completado en '{dest_table}' (101 registros) para data_date_part = '{data_date_part}'")
